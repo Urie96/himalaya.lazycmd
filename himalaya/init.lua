@@ -371,7 +371,7 @@ end
 -- 列出内容
 function M.list(path, cb)
   -- 根路径：列出所有账号
-  if #path == 0 then
+  if #path == 1 then
     cached_system({ 'himalaya', '--output', 'json', 'account', 'list' }, function(output)
       if output.code ~= 0 then
         lc.notify('Failed to list accounts: ' .. output.stderr)
@@ -390,8 +390,8 @@ function M.list(path, cb)
     end)
 
   -- 账号路径：列出该账号的文件夹
-  elseif #path == 1 then
-    local account = path[1]
+  elseif #path == 2 then
+    local account = path[2]
 
     -- 检查持久化缓存（14 天 TTL）
     local cache_key = 'folders:' .. account
@@ -425,9 +425,9 @@ function M.list(path, cb)
     end)
 
   -- 文件夹路径：列出该文件夹的信封
-  elseif #path == 2 then
-    local account = path[1]
-    local folder = path[2]
+  elseif #path == 3 then
+    local account = path[2]
+    local folder = path[3]
 
     -- 检测账号/文件夹变化，重置分页状态
     if pagination.current_account ~= account or pagination.current_folder ~= folder then
@@ -483,7 +483,7 @@ function M.preview(entry, cb)
 
   -- 检查是否在最后一封邮件，如果是则加载下一页
   local path = lc.api.get_current_path()
-  if #path == 2 and not pagination.loading and not pagination.reached_end then
+  if #path == 3 and not pagination.loading and not pagination.reached_end then
     -- 遍历 pagination.entries 找到当前 entry 的索引
     for i, e in ipairs(pagination.entries) do
       if e.id == entry.id then
@@ -561,8 +561,8 @@ function M.setup()
   lc.keymap.set('main', '<enter>', function()
     local path = lc.api.get_current_path()
 
-    -- 在邮件列表中（路径长度 >= 2），显示操作菜单
-    if #path >= 2 then
+    -- 在邮件列表中（路径长度 >= 3），显示操作菜单
+    if #path >= 3 then
       require('himalaya.action').select_action()
     else
       -- 其他情况进入下一级

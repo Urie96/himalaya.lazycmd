@@ -119,12 +119,12 @@ function M.delete() do_himalaya_action 'delete' end
 function M.write()
   -- 写新邮件
   local path = lc.api.get_current_path()
-  if #path < 1 then
+  if #path < 2 then
     lc.notify 'Please select an account first'
     return
   end
 
-  local account = path[1]
+  local account = path[2]
   lc.log('info', 'Writing new message in {}', account)
 
   lc.interactive({ 'himalaya', 'message', 'write', '--account', account }, function(exit_code)
