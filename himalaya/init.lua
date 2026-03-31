@@ -3,6 +3,7 @@ local config = require 'himalaya.config'
 local meta = require 'himalaya.meta'
 
 local M = {}
+local CACHE_NAMESPACE = 'himalaya'
 
 local cache = {
   system = {},
@@ -217,7 +218,7 @@ function M.list(path, cb)
   if #path == 2 then
     local account = path[2]
     local folder_cache_key = 'folders:' .. account
-    local cached_folders = lc.cache.get(folder_cache_key)
+    local cached_folders = lc.cache.get(CACHE_NAMESPACE, folder_cache_key)
     if cached_folders then
       lc.log('info', 'Using cached folders for account: {}', account)
       cb(meta.attach(cached_folders))
@@ -238,7 +239,7 @@ function M.list(path, cb)
         return
       end
 
-      lc.cache.set(folder_cache_key, entries, { ttl = config.get().folder_cache_ttl })
+      lc.cache.set(CACHE_NAMESPACE, folder_cache_key, entries, { ttl = config.get().folder_cache_ttl })
       cb(meta.attach(entries))
     end)
     return
