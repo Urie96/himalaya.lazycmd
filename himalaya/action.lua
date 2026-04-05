@@ -8,7 +8,7 @@ local runtime = {
 }
 
 local function get_selected_email()
-  local entry = lc.api.page_get_hovered()
+  local entry = lc.api.get_hovered()
   if not entry or entry.kind ~= 'email' or not entry.id or not entry.account or not entry.folder then return nil end
   return entry
 end

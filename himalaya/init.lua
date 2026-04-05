@@ -167,7 +167,7 @@ local function load_next_page()
       table.insert(pagination.entries, entry)
     end
 
-    lc.api.page_set_entries(pagination.entries)
+    lc.api.set_entries(nil, pagination.entries)
     lc.notify('Loaded ' .. #new_entries .. ' more emails')
   end)
 end
@@ -183,7 +183,7 @@ function M.setup(opt)
   }
   meta.setup(config.get())
 
-  lc.api.append_hook_pre_reload(function()
+  lc.hook.pre_reload(function()
     cache.system = {}
     pagination.current_account = nil
     pagination.current_folder = nil
