@@ -134,7 +134,14 @@ local function do_himalaya_action(action_name)
   end
 
   if action_name == 'export' then
-    local temp_file = '/tmp/lazydeck-message-' .. tostring(entry.id) .. '.eml'
+    local temp_file, temp_err = deck.fs.tempfile({
+      prefix = 'lazydeck-message-' .. tostring(entry.id) .. '-',
+      suffix = '.eml',
+    })
+    if not temp_file then
+      deck.notify('Failed to create tempfile: ' .. tostring(temp_err))
+      return
+    end
     deck.notify 'Exporting message...'
     deck.system({
       runtime.cfg.command,
