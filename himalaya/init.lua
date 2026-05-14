@@ -25,20 +25,20 @@ end
 local function cached_system(cmd_args, cb)
   local key = system_cache_key(cmd_args)
   if cache.system[key] then
-    lc.log('debug', 'Cache hit for command: {}', table.concat(cmd_args, ' '))
+    deck.log('debug', 'Cache hit for command: {}', table.concat(cmd_args, ' '))
     cb(cache.system[key])
     return
   end
 
-  lc.log('debug', 'Cache miss for command: {}', table.concat(cmd_args, ' '))
-  lc.system(cmd_args, function(output)
+  deck.log('debug', 'Cache miss for command: {}', table.concat(cmd_args, ' '))
+  deck.system(cmd_args, function(output)
     cache.system[key] = output
     cb(output)
   end)
 end
 
 local function parse_accounts(output)
-  local success, data = pcall(lc.json.decode, output.stdout)
+  local success, data = pcall(deck.json.decode, output.stdout)
   if not success or type(data) ~= 'table' then return {}, (data or 'Invalid JSON') end
 
   local entries = {}
@@ -55,7 +55,7 @@ local function parse_accounts(output)
 end
 
 local function parse_folders(output, account)
-  local success, data = pcall(lc.json.decode, output.stdout)
+  local success, data = pcall(deck.json.decode, output.stdout)
   if not success or type(data) ~= 'table' then return {}, (data or 'Invalid JSON') end
 
   local entries = {}
@@ -76,7 +76,7 @@ local function parse_folders(output, account)
 end
 
 local function parse_envelopes(output, account, folder)
-  local success, data = pcall(lc.json.decode, output.stdout)
+  local success, data = pcall(deck.json.decode, output.stdout)
   if not success or type(data) ~= 'table' then return {}, (data or 'Invalid JSON') end
 
   local entries = {}
@@ -84,10 +84,10 @@ local function parse_envelopes(output, account, folder)
     local display_parts = {}
 
     if envelope.date then
-      local ok, parsed = pcall(lc.time.parse, envelope.date)
+      local ok, parsed = pcall(deck.time.parse, envelope.date)
       if ok then
         envelope.timestamp = parsed
-        table.insert(display_parts, lc.time.format(envelope.timestamp, 'compact'):fg 'yellow')
+        table.insert(display_parts, deck.time.format(envelope.timestamp, 'compact'):fg 'yellow')
         table.insert(display_parts, ' ')
       end
     end
@@ -106,7 +106,7 @@ local function parse_envelopes(output, account, folder)
     table.insert(entries, {
       key = tostring(envelope.id),
       kind = 'email',
-      display = lc.style.line(display_parts),
+      display = deck.style.line(display_parts),
       id = envelope.id,
       account = account,
       folder = folder,
@@ -127,8 +127,8 @@ local function load_next_page()
   pagination.loading = true
   pagination.current_page = pagination.current_page + 1
 
-  lc.notify('Loading page ' .. pagination.current_page .. '...')
-  lc.log('info', 'Loading page {} for {}/{}', pagination.current_page, account, folder)
+  deck.notify('Loading page ' .. pagination.current_page .. '...')
+  deck.log('info', 'Loading page {} for {}/{}', pagination.current_page, account, folder)
 
   cached_system({
     config.get().command,
@@ -146,19 +146,19 @@ local function load_next_page()
     pagination.loading = false
 
     if output.code ~= 0 then
-      lc.log('error', 'Failed to load page {}: {}', pagination.current_page, output.stderr or 'Unknown error')
+      deck.log('error', 'Failed to load page {}: {}', pagination.current_page, output.stderr or 'Unknown error')
       pagination.current_page = pagination.current_page - 1
       pagination.reached_end = true
-      lc.notify 'End of messages'
+      deck.notify 'End of messages'
       return
     end
 
     local new_entries, err = parse_envelopes(output, account, folder)
     if err or #new_entries == 0 then
-      lc.log('info', 'No more emails on page {}', pagination.current_page)
+      deck.log('info', 'No more emails on page {}', pagination.current_page)
       pagination.current_page = pagination.current_page - 1
       pagination.reached_end = true
-      lc.notify 'End of messages'
+      deck.notify 'End of messages'
       return
     end
 
@@ -167,8 +167,8 @@ local function load_next_page()
       table.insert(pagination.entries, entry)
     end
 
-    lc.api.set_entries(nil, pagination.entries)
-    lc.notify('Loaded ' .. #new_entries .. ' more emails')
+    deck.api.set_entries(nil, pagination.entries)
+    deck.notify('Loaded ' .. #new_entries .. ' more emails')
   end)
 end
 
@@ -183,7 +183,7 @@ function M.setup(opt)
   }
   meta.setup(config.get())
 
-  lc.hook.pre_reload(function()
+  deck.hook.pre_reload(function()
     cache.system = {}
     pagination.current_account = nil
     pagination.current_folder = nil
@@ -198,14 +198,14 @@ function M.list(path, cb)
   if #path == 1 then
     cached_system({ config.get().command, '--output', 'json', 'account', 'list' }, function(output)
       if output.code ~= 0 then
-        lc.notify('Failed to list accounts: ' .. output.stderr)
+        deck.notify('Failed to list accounts: ' .. output.stderr)
         cb(meta.attach {})
         return
       end
 
       local entries, err = parse_accounts(output)
       if err then
-        lc.notify('Failed to parse accounts: ' .. tostring(err))
+        deck.notify('Failed to parse accounts: ' .. tostring(err))
         cb(meta.attach {})
         return
       end
@@ -218,28 +218,28 @@ function M.list(path, cb)
   if #path == 2 then
     local account = path[2]
     local folder_cache_key = 'folders:' .. account
-    local cached_folders = lc.cache.get(CACHE_NAMESPACE, folder_cache_key)
+    local cached_folders = deck.cache.get(CACHE_NAMESPACE, folder_cache_key)
     if cached_folders then
-      lc.log('info', 'Using cached folders for account: {}', account)
+      deck.log('info', 'Using cached folders for account: {}', account)
       cb(meta.attach(cached_folders))
       return
     end
 
-    lc.system({ config.get().command, '--output', 'json', 'folder', 'list', '--account', account }, function(output)
+    deck.system({ config.get().command, '--output', 'json', 'folder', 'list', '--account', account }, function(output)
       if output.code ~= 0 then
-        lc.notify('Failed to list folders: ' .. output.stderr)
+        deck.notify('Failed to list folders: ' .. output.stderr)
         cb(meta.attach {})
         return
       end
 
       local entries, err = parse_folders(output, account)
       if err then
-        lc.notify('Failed to parse folders: ' .. tostring(err))
+        deck.notify('Failed to parse folders: ' .. tostring(err))
         cb(meta.attach {})
         return
       end
 
-      lc.cache.set(CACHE_NAMESPACE, folder_cache_key, entries, { ttl = config.get().folder_cache_ttl })
+      deck.cache.set(CACHE_NAMESPACE, folder_cache_key, entries, { ttl = config.get().folder_cache_ttl })
       cb(meta.attach(entries))
     end)
     return
@@ -250,7 +250,7 @@ function M.list(path, cb)
     local folder = path[3]
 
     if pagination.current_account ~= account or pagination.current_folder ~= folder then
-      lc.log('info', 'Folder changed to {}/{}, resetting pagination', account, folder)
+      deck.log('info', 'Folder changed to {}/{}, resetting pagination', account, folder)
       pagination.current_account = account
       pagination.current_folder = folder
       pagination.current_page = 1
@@ -273,14 +273,14 @@ function M.list(path, cb)
       tostring(pagination.current_page),
     }, function(output)
       if output.code ~= 0 then
-        lc.log('error', 'Failed to list envelopes: {}', output.stderr or 'Unknown error')
+        deck.log('error', 'Failed to list envelopes: {}', output.stderr or 'Unknown error')
         cb(meta.attach {})
         return
       end
 
       local entries, err = parse_envelopes(output, account, folder)
       if err then
-        lc.log('error', 'Failed to parse envelopes: {}', tostring(err))
+        deck.log('error', 'Failed to parse envelopes: {}', tostring(err))
         cb(meta.attach {})
         return
       end

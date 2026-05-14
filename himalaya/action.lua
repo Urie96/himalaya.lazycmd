@@ -8,7 +8,7 @@ local runtime = {
 }
 
 local function get_selected_email()
-  local entry = lc.api.get_hovered()
+  local entry = deck.api.get_hovered()
   if not entry or entry.kind ~= 'email' or not entry.id or not entry.account or not entry.folder then return nil end
   return entry
 end
@@ -59,31 +59,31 @@ local function build_header_lines(message)
   local lines = {}
 
   if message.subject then
-    table.insert(lines, lc.style.line { ('Subject: '):fg 'cyan', message.subject:fg 'green' })
+    table.insert(lines, deck.style.line { ('Subject: '):fg 'cyan', message.subject:fg 'green' })
     table.insert(lines, '')
   end
 
   if message.from then
-    table.insert(lines, lc.style.line { ('From: '):fg 'cyan', (format_addr(message.from) or 'Unknown'):fg 'yellow' })
+    table.insert(lines, deck.style.line { ('From: '):fg 'cyan', (format_addr(message.from) or 'Unknown'):fg 'yellow' })
   end
 
   local to_str = format_addrs(message.to)
-  if to_str then table.insert(lines, lc.style.line { ('To: '):fg 'cyan', to_str:fg 'yellow' }) end
+  if to_str then table.insert(lines, deck.style.line { ('To: '):fg 'cyan', to_str:fg 'yellow' }) end
 
   local cc_str = message.cc_str or format_addrs(message.cc)
-  if cc_str then table.insert(lines, lc.style.line { ('Cc: '):fg 'cyan', cc_str:fg 'yellow' }) end
+  if cc_str then table.insert(lines, deck.style.line { ('Cc: '):fg 'cyan', cc_str:fg 'yellow' }) end
 
   if message.timestamp then
     table.insert(
       lines,
-      lc.style.line { ('Date: '):fg 'cyan', lc.time.format(message.timestamp, '%Y/%m/%d %H:%M:%S'):fg 'yellow' }
+      deck.style.line { ('Date: '):fg 'cyan', deck.time.format(message.timestamp, '%Y/%m/%d %H:%M:%S'):fg 'yellow' }
     )
   end
 
   table.insert(lines, '')
   table.insert(
     lines,
-    lc.style.line {
+    deck.style.line {
       ('Attachments: '):fg 'cyan',
       (message.has_attachment and 'yes' or 'none'):fg(message.has_attachment and 'yellow' or 'gray'),
     }
@@ -101,7 +101,7 @@ local function build_preview(message)
   table.insert(lines, string.rep('─', 50))
   table.insert(lines, '')
   if message.body then table.insert(lines, message.body) end
-  return lc.style.text(lines)
+  return deck.style.text(lines)
 end
 
 local function build_loading_preview(envelope)
@@ -110,7 +110,7 @@ local function build_loading_preview(envelope)
   table.insert(lines, string.rep('─', 50))
   table.insert(lines, '')
   table.insert(lines, '正文 loading 中...')
-  return lc.style.text(lines)
+  return deck.style.text(lines)
 end
 
 local function merge_envelope_and_body(envelope, body_message)
@@ -129,14 +129,14 @@ end
 local function do_himalaya_action(action_name)
   local entry = get_selected_email()
   if not entry then
-    lc.notify 'No email selected'
+    deck.notify 'No email selected'
     return
   end
 
   if action_name == 'export' then
-    local temp_file = '/tmp/lazycmd-message-' .. tostring(entry.id) .. '.eml'
-    lc.notify 'Exporting message...'
-    lc.system({
+    local temp_file = '/tmp/lazydeck-message-' .. tostring(entry.id) .. '.eml'
+    deck.notify 'Exporting message...'
+    deck.system({
       runtime.cfg.command,
       'message',
       'export',
@@ -150,15 +150,15 @@ local function do_himalaya_action(action_name)
       temp_file,
     }, function(output)
       if output.code ~= 0 then
-        lc.notify('Export failed: ' .. (output.stderr or 'Unknown error'))
+        deck.notify('Export failed: ' .. (output.stderr or 'Unknown error'))
         return
       end
-      lc.system.open(temp_file)
-      lc.notify 'Message opened'
+      deck.system.open(temp_file)
+      deck.notify 'Message opened'
     end)
   elseif action_name == 'download' then
-    lc.notify 'Downloading attachments...'
-    lc.system({
+    deck.notify 'Downloading attachments...'
+    deck.system({
       runtime.cfg.command,
       'attachment',
       'download',
@@ -169,13 +169,13 @@ local function do_himalaya_action(action_name)
       entry.folder,
     }, function(output)
       if output.code ~= 0 then
-        lc.notify('Download failed: ' .. (output.stderr or 'Unknown error'))
+        deck.notify('Download failed: ' .. (output.stderr or 'Unknown error'))
       else
-        lc.notify(output.stdout and output.stdout:trim() or 'Attachment downloaded')
+        deck.notify(output.stdout and output.stdout:trim() or 'Attachment downloaded')
       end
     end)
   elseif action_name == 'reply' then
-    lc.interactive({
+    deck.interactive({
       runtime.cfg.command,
       'message',
       'reply',
@@ -185,10 +185,10 @@ local function do_himalaya_action(action_name)
       '--folder',
       entry.folder,
     }, function(exit_code)
-      lc.notify(exit_code ~= 0 and 'Failed to reply to message' or 'Reply sent')
+      deck.notify(exit_code ~= 0 and 'Failed to reply to message' or 'Reply sent')
     end)
   elseif action_name == 'delete' then
-    lc.interactive({
+    deck.interactive({
       runtime.cfg.command,
       'message',
       'delete',
@@ -199,10 +199,10 @@ local function do_himalaya_action(action_name)
       entry.folder,
     }, function(exit_code)
       if exit_code ~= 0 then
-        lc.notify 'Failed to delete message'
+        deck.notify 'Failed to delete message'
       else
-        lc.notify 'Message deleted'
-        lc.cmd 'reload'
+        deck.notify 'Message deleted'
+        deck.cmd 'reload'
       end
     end)
   end
@@ -216,17 +216,17 @@ function M.setup(opts)
 end
 
 function M.account_preview(entry)
-  return lc.style.text {
-    lc.style.line { ('Account: '):fg 'cyan', tostring(entry.account or entry.key):fg 'green' },
+  return deck.style.text {
+    deck.style.line { ('Account: '):fg 'cyan', tostring(entry.account or entry.key):fg 'green' },
     '',
     'Enter 查看该账号下的文件夹。',
   }
 end
 
 function M.folder_preview(entry)
-  return lc.style.text {
-    lc.style.line { ('Folder: '):fg 'cyan', tostring(entry.folder or entry.key):fg 'green' },
-    lc.style.line { ('Account: '):fg 'cyan', tostring(entry.account or ''):fg 'yellow' },
+  return deck.style.text {
+    deck.style.line { ('Folder: '):fg 'cyan', tostring(entry.folder or entry.key):fg 'green' },
+    deck.style.line { ('Account: '):fg 'cyan', tostring(entry.account or ''):fg 'yellow' },
     '',
     'Enter 查看该文件夹中的邮件。',
   }
@@ -238,7 +238,7 @@ function M.email_preview(entry, cb)
     return
   end
 
-  local path = lc.api.get_current_path()
+  local path = deck.api.get_current_path()
   if #path == 3 and not runtime.pagination.loading and not runtime.pagination.reached_end then
     for i, value in ipairs(runtime.pagination.entries) do
       if value.id == entry.id then
@@ -282,10 +282,10 @@ function M.email_preview(entry, cb)
 end
 
 function M.info_preview(entry)
-  return lc.style.text {
-    lc.style.line { (entry.title or 'himalaya'):fg 'cyan' },
-    lc.style.line { (entry.message or ''):fg(entry.color or 'darkgray') },
-    lc.style.line { (entry.detail or ''):fg 'darkgray' },
+  return deck.style.text {
+    deck.style.line { (entry.title or 'himalaya'):fg 'cyan' },
+    deck.style.line { (entry.message or ''):fg(entry.color or 'darkgray') },
+    deck.style.line { (entry.detail or ''):fg 'darkgray' },
   }
 end
 
@@ -295,38 +295,38 @@ function M.reply() do_himalaya_action 'reply' end
 function M.delete() do_himalaya_action 'delete' end
 
 function M.write()
-  local path = lc.api.get_current_path()
+  local path = deck.api.get_current_path()
   if #path < 2 then
-    lc.notify 'Please select an account first'
+    deck.notify 'Please select an account first'
     return
   end
 
-  lc.interactive({ runtime.cfg.command, 'message', 'write', '--account', path[2] }, function(exit_code)
-    lc.notify(exit_code ~= 0 and 'Failed to send email' or 'Email sent successfully')
+  deck.interactive({ runtime.cfg.command, 'message', 'write', '--account', path[2] }, function(exit_code)
+    deck.notify(exit_code ~= 0 and 'Failed to send email' or 'Email sent successfully')
   end)
 end
 
 function M.select_action()
   local entry = get_selected_email()
   if not entry then
-    lc.notify 'No email selected'
+    deck.notify 'No email selected'
     return
   end
 
   local options = {
-    { value = 'export', display = lc.style.line { ('📄 Export'):fg 'cyan' } },
-    { value = 'reply', display = lc.style.line { ('↩️ Reply'):fg 'green' } },
-    { value = 'download', display = lc.style.line { ('📎 Download Attachments'):fg 'blue' } },
-    { value = 'delete', display = lc.style.line { ('🗑️ Delete'):fg 'red' } },
+    { value = 'export', display = deck.style.line { ('📄 Export'):fg 'cyan' } },
+    { value = 'reply', display = deck.style.line { ('↩️ Reply'):fg 'green' } },
+    { value = 'download', display = deck.style.line { ('📎 Download Attachments'):fg 'blue' } },
+    { value = 'delete', display = deck.style.line { ('🗑️ Delete'):fg 'red' } },
   }
 
-  lc.select({
+  deck.select({
     prompt = 'Select an action',
     options = options,
   }, function(choice)
     if not choice then return end
     if choice == 'delete' then
-      lc.confirm {
+      deck.confirm {
         title = 'Delete Message',
         prompt = 'Are you sure you want to delete this message?',
         on_confirm = function() M.delete() end,

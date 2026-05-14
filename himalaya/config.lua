@@ -10,7 +10,7 @@ local cfg = {
 }
 
 function M.setup(opt)
-  cfg = lc.tbl_deep_extend('force', cfg, opt or {})
+  cfg = deck.tbl_deep_extend('force', cfg, opt or {})
 end
 
 function M.get() return cfg end
