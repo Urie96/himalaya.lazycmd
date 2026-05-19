@@ -3,6 +3,14 @@ local config = require 'himalaya.config'
 local meta = require 'himalaya.meta'
 
 local M = {}
+
+function M.meta()
+  return {
+    icon = '󰇮',
+    desc = 'Email client powered by Himalaya',
+    color = 'cyan',
+  }
+end
 local CACHE_NAMESPACE = 'himalaya'
 
 local cache = {
